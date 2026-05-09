@@ -21,14 +21,18 @@ const config: Config = {
 
       // ── Custom Animations ──
       animation: {
-        "slide-up":    "slideUp 0.5s ease-out both",
-        "slide-in":    "slideIn 0.4s ease-out both",
-        "fade-in":     "fadeIn 0.5s ease-out both",
-        "race-in":     "raceIn 0.6s cubic-bezier(0.22,1,0.36,1) both",
-        "stripe-flow": "stripeFlow 3s linear infinite",
-        "live-pulse":  "livePulse 2s ease-in-out infinite",
-        "car-drive":   "carDrive 1.5s ease-in-out infinite",
-        "count-up":    "countUp 0.6s ease-out both",
+        "slide-up":       "slideUp 0.5s ease-out both",
+        "slide-in":       "slideIn 0.4s ease-out both",
+        "fade-in":        "fadeIn 0.5s ease-out both",
+        "race-in":        "raceIn 0.6s cubic-bezier(0.22,1,0.36,1) both",
+        "stripe-flow":    "stripeFlow 3s linear infinite",
+        "live-pulse":     "livePulse 2s ease-in-out infinite",
+        "car-drive":      "carDrive 1.5s ease-in-out infinite",
+        "count-up":       "countUp 0.6s ease-out both",
+        // F1 logo & component animations
+        "wheel-spin":     "wheelSpin 0.85s linear infinite",
+        "speed-line":     "speedLine 1.8s ease-in infinite",
+        "f1-glow-pulse":  "f1GlowPulse 2s ease-in-out infinite",
       },
 
       // ── Keyframes ──

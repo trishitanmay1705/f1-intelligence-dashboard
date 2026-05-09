@@ -28,6 +28,21 @@ export interface ConstructorStanding {
   nationality: string;
 }
 
+export interface SessionTime {
+  date: string;
+  time: string;
+}
+
+export interface RaceSessions {
+  fp1: SessionTime | null;
+  fp2: SessionTime | null;
+  fp3: SessionTime | null;
+  sprint_qualifying: SessionTime | null;
+  sprint: SessionTime | null;
+  qualifying: SessionTime | null;
+  race: SessionTime;
+}
+
 export interface Race {
   round: string;
   race_name: string;
@@ -36,6 +51,7 @@ export interface Race {
   locality: string;
   date: string;
   time: string;
+  sessions?: RaceSessions;
 }
 
 export interface RaceResult {
@@ -74,9 +90,13 @@ export const f1Api = {
 
   // Get current season race calendar
   getCurrentSeason: async () => {
-    const response = await apiClient.get(
-      `/api/v1/f1/season/current`
-    );
+    const response = await apiClient.get(`/api/v1/f1/season/current`);
+    return response.data.data;
+  },
+
+  // Get race calendar for any season
+  getSeason: async (season: string) => {
+    const response = await apiClient.get(`/api/v1/f1/season/${season}`);
     return response.data.data;
   },
 

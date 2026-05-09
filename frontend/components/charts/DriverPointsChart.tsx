@@ -60,12 +60,13 @@ export default function DriverPointsChart({ standings }: Props) {
     }));
 
   return (
-    <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
-      <h3 className="text-lg font-bold text-white mb-6">
-        Driver Championship Points
+    <div className="carbon-card p-4">
+      <p className="text-gray-500 text-[10px] uppercase tracking-widest mb-1">Points Breakdown</p>
+      <h3 className="text-sm font-black text-white uppercase tracking-wide mb-4">
+        Driver Championship
       </h3>
 
-      <ResponsiveContainer width="100%" height={500}>
+      <ResponsiveContainer width="100%" height={400}>
         <BarChart
           data={data}
           layout="vertical"    // Horizontal bars

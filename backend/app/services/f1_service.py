@@ -11,11 +11,11 @@ class F1Service:
 
     ''' SEASONS '''
 
-    async def get_current_season(self) -> dict:
-        ''' Get current season races '''
+    async def get_season(self, season: str = "current") -> dict:
+        ''' Get races for any season (year or "current") '''
         try:
-            url = f"{self.base_url}/current.json"
-            logger.info(f"Fetching current season from {url}")
+            url = f"{self.base_url}/{season}.json"
+            logger.info(f"Fetching season {season} from {url}")
 
             response = await self.client.get(url)
             response.raise_for_status()
@@ -23,26 +23,45 @@ class F1Service:
             data = response.json()
             races = data["MRData"]["RaceTable"]["Races"]
 
+            def _session(r, key):
+                s = r.get(key)
+                if not s:
+                    return None
+                return {"date": s.get("date"), "time": s.get("time", "TBC")}
+
             return {
-                "season" : data["MRData"]["RaceTable"]["season"],
-                "total_races" : len(races),
-                "races" : [
+                "season": data["MRData"]["RaceTable"]["season"],
+                "total_races": len(races),
+                "races": [
                     {
-                        "round" : r["round"],
-                        "race_name" : r["raceName"],
-                        "circuit" : r["Circuit"]["circuitName"],
-                        "country" : r["Circuit"]["Location"]["country"],
-                        "locality" : r["Circuit"]["Location"]["locality"],
-                        "date" : r["date"],
-                        "time" : r.get("time", "TBC"),
+                        "round": r["round"],
+                        "race_name": r["raceName"],
+                        "circuit": r["Circuit"]["circuitName"],
+                        "country": r["Circuit"]["Location"]["country"],
+                        "locality": r["Circuit"]["Location"]["locality"],
+                        "date": r["date"],
+                        "time": r.get("time", "TBC"),
+                        "sessions": {
+                            "fp1": _session(r, "FirstPractice"),
+                            "fp2": _session(r, "SecondPractice"),
+                            "fp3": _session(r, "ThirdPractice"),
+                            "sprint_qualifying": _session(r, "SprintQualifying") or _session(r, "SprintShootout"),
+                            "sprint": _session(r, "Sprint"),
+                            "qualifying": _session(r, "Qualifying"),
+                            "race": {"date": r["date"], "time": r.get("time", "TBC")},
+                        },
                     }
                     for r in races
-                ], 
+                ],
             }
-        
+
         except httpx.HTTPError as e:
-            logger.error(f"HTTP error fetching season: {e}")
+            logger.error(f"HTTP error fetching season {season}: {e}")
             raise
+
+    async def get_current_season(self) -> dict:
+        ''' Get current season races (alias for get_season("current")) '''
+        return await self.get_season("current")
 
     async def get_driver_standings(self, season: str = "current") -> dict:
         try:

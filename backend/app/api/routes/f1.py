@@ -11,25 +11,29 @@ router = APIRouter(prefix="/f1", tags=["F1 Data"])
 
 @router.get("/season/current")
 async def get_current_season():
-    """
-    Get the current F1 season race calendar.
+    """Get the current F1 season race calendar."""
+    try:
+        data = await f1_service.get_season("current")
+        return {"success": True, "data": data}
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Failed to fetch season data: {str(e)}")
 
-    Returns list of all races this season with:
-    - Race name, circuit, country
-    - Date and time
-    - Round number
+
+@router.get("/season/{season}")
+async def get_season(season: str):
+    """
+    Get race calendar for any season.
+
+    Path parameter:
+    - season: year e.g. "2024", "2023", or "current"
+
+    Example: /api/v1/f1/season/2023
     """
     try:
-        data = await f1_service.get_current_season()
+        data = await f1_service.get_season(season)
         return {"success": True, "data": data}
-
     except Exception as e:
-        # HTTPException sends proper HTTP error codes
-        # 503 = Service Unavailable (external API failed)
-        raise HTTPException(
-            status_code=503,
-            detail=f"Failed to fetch season data: {str(e)}"
-        )
+        raise HTTPException(status_code=503, detail=f"Failed to fetch season {season}: {str(e)}")
 
 
 # ══════════════════════════════════════════════════

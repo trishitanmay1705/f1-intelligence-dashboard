@@ -60,12 +60,13 @@ export default function ConstructorPointsChart({ standings }: Props) {
   }));
 
   return (
-    <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
-      <h3 className="text-lg font-bold text-white mb-6">
-        Constructor Championship Points
+    <div className="carbon-card p-4">
+      <p className="text-gray-500 text-[10px] uppercase tracking-widest mb-1">Points Breakdown</p>
+      <h3 className="text-sm font-black text-white uppercase tracking-wide mb-4">
+        Constructor Championship
       </h3>
 
-      <ResponsiveContainer width="100%" height={350}>
+      <ResponsiveContainer width="100%" height={360}>
         <BarChart
           data={data}
           margin={{ top: 10, right: 20, left: 0, bottom: 60 }}

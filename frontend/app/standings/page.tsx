@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { f1Api, DriverStanding, ConstructorStanding } from "@/lib/api";
@@ -11,7 +11,7 @@ import DriverPointsChart from "@/components/charts/DriverPointsChart";
 import ConstructorPointsChart from "@/components/charts/ConstructorPointsChart";
 import ChampionshipGapChart from "@/components/charts/ChampionshipGapChart";
 
-type Tab = "drivers" | "constructors" | "charts";
+type Tab = "drivers" | "constructors";
 
 export default function StandingsPage() {
   const [driverStandings,      setDriverStandings]      = useState<DriverStanding[]>([]);
@@ -43,9 +43,8 @@ export default function StandingsPage() {
   const maxConstructorPoints = parseFloat(constructorStandings[0]?.points || "1");
 
   const tabs: { id: Tab; label: string; icon: string }[] = [
-    { id: "drivers",      label: "Drivers",     icon: "🏎️" },
-    { id: "constructors", label: "Constructors", icon: "🏆" },
-    { id: "charts",       label: "Charts",       icon: "📊" },
+    { id: "drivers",      label: "Drivers",      icon: "🏎️" },
+    { id: "constructors", label: "Constructors",  icon: "🏆" },
   ];
 
   return (
@@ -64,8 +63,6 @@ export default function StandingsPage() {
             </p>
           </div>
         </div>
-
-        {/* Season Selector */}
         <select
           value={season}
           onChange={(e) => setSeason(e.target.value)}
@@ -86,14 +83,13 @@ export default function StandingsPage() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`
-              flex items-center gap-2 px-5 py-3 text-sm font-semibold
-              border-b-2 transition-colors uppercase tracking-wide
-              ${activeTab === tab.id
+            className={[
+              "flex items-center gap-2 px-5 py-3 text-sm font-semibold",
+              "border-b-2 transition-colors uppercase tracking-wide",
+              activeTab === tab.id
                 ? "border-f1-red text-white"
-                : "border-transparent text-gray-500 hover:text-white"
-              }
-            `}
+                : "border-transparent text-gray-500 hover:text-white",
+            ].join(" ")}
           >
             <span>{tab.icon}</span>
             <span>{tab.label}</span>
@@ -105,231 +101,228 @@ export default function StandingsPage() {
         <LoadingSpinner />
       ) : (
         <>
-          {/* ── DRIVERS TAB ── */}
+          {/* ═══════════════════════════════════════════════════
+              DRIVERS — standings list + charts side by side
+              ═══════════════════════════════════════════════════ */}
           {activeTab === "drivers" && (
-            <div className="space-y-2">
-              {driverStandings.map((driver, index) => {
-                const points     = parseFloat(driver.points);
-                const percentage = (points / maxDriverPoints) * 100;
+            <div className="space-y-4">
 
-                return (
-                  <div
-                    key={driver.driver_code}
-                    className="carbon-card card-hover p-4"
-                  >
-                    <div className="flex items-center gap-4">
-
-                      {/* Position */}
-                      <div className="w-10 text-center shrink-0">
-                        <span className={`
-                          text-lg font-black f1-number
-                          ${index === 0 ? "pos-1" : ""}
-                          ${index === 1 ? "pos-2" : ""}
-                          ${index === 2 ? "pos-3" : ""}
-                          ${index  > 2  ? "text-gray-600" : ""}
-                        `}>
-                          P{driver.position}
-                        </span>
-                      </div>
-
-                      {/* Driver number badge */}
-                      <DriverBadge
-                        driverCode={driver.driver_code}
-                        driverName={driver.driver_name}
-                        driverNumber={driver.driver_number}
-                        team={driver.team}
-                        variant="number"
-                      />
-
-                      {/* Driver info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-bold text-white">
-                            {driver.driver_name}
-                          </span>
-                          <TeamBadge team={driver.team} variant="pill" />
-                        </div>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-gray-500 text-sm">
-                            {driver.nationality}
-                          </span>
-                        </div>
-
-                        {/* Points progress bar */}
-                        <div className="mt-2 flex items-center gap-2">
-                          <div className="flex-1 bg-gray-800 rounded-full h-1.5">
-                            <div
-                              className="h-1.5 rounded-full transition-all duration-700"
-                              style={{
-                                width: `${percentage}%`,
-                                backgroundColor: getTeamColor(driver.team),
-                              }}
-                            />
-                          </div>
-                          <span className="text-gray-600 text-xs w-8 text-right">
-                            {Math.round(percentage)}%
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Points + wins */}
-                      <div className="text-right shrink-0">
-                        <p className="text-xl font-black text-white f1-number">
-                          {driver.points}
-                          <span className="text-gray-500 text-sm font-normal ml-1">pts</span>
-                        </p>
-                        <p className="text-gray-500 text-sm">
-                          {driver.wins} {parseInt(driver.wins) === 1 ? "win" : "wins"}
-                        </p>
-                      </div>
-                    </div>
+              {/* Quick-stat strip */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="carbon-card p-3 flex items-center gap-3">
+                  <div className="min-w-0">
+                    <p className="text-gray-500 text-[10px] uppercase tracking-widest">Championship Leader</p>
+                    <p className="text-white font-bold text-base mt-0.5 truncate">
+                      {driverStandings[0]?.driver_name}
+                    </p>
                   </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* ── CONSTRUCTORS TAB ── */}
-          {activeTab === "constructors" && (
-            <div className="space-y-2">
-              {constructorStandings.map((team, index) => {
-                const points     = parseFloat(team.points);
-                const percentage = (points / maxConstructorPoints) * 100;
-
-                return (
-                  <div
-                    key={team.team}
-                    className="carbon-card card-hover p-4"
-                  >
-                    <div className="flex items-center gap-4">
-
-                      {/* Position */}
-                      <div className="w-10 text-center shrink-0">
-                        <span className={`
-                          text-lg font-black f1-number
-                          ${index === 0 ? "pos-1" : ""}
-                          ${index === 1 ? "pos-2" : ""}
-                          ${index === 2 ? "pos-3" : ""}
-                          ${index  > 2  ? "text-gray-600" : ""}
-                        `}>
-                          P{team.position}
-                        </span>
-                      </div>
-
-                      {/* Team 3-letter badge */}
-                      <div
-                        className="w-12 h-12 rounded-lg flex items-center justify-center text-xs font-black tracking-wider shrink-0"
-                        style={{
-                          backgroundColor: getTeamColor(team.team) + "22",
-                          color:           getTeamColor(team.team),
-                          border:         `1px solid ${getTeamColor(team.team)}33`,
-                        }}
-                      >
-                        {team.team.slice(0, 3).toUpperCase()}
-                      </div>
-
-                      {/* Team info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="font-bold text-white">{team.team}</p>
-                        </div>
-                        <p className="text-gray-500 text-sm">{team.nationality}</p>
-
-                        {/* Progress bar */}
-                        <div className="mt-2 flex items-center gap-2">
-                          <div className="flex-1 bg-gray-800 rounded-full h-1.5">
-                            <div
-                              className="h-1.5 rounded-full transition-all duration-700"
-                              style={{
-                                width: `${percentage}%`,
-                                backgroundColor: getTeamColor(team.team),
-                              }}
-                            />
-                          </div>
-                          <span className="text-gray-600 text-xs w-8 text-right">
-                            {Math.round(percentage)}%
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Points */}
-                      <div className="text-right shrink-0">
-                        <p className="text-xl font-black text-white f1-number">
-                          {team.points}
-                          <span className="text-gray-500 text-sm font-normal ml-1">pts</span>
-                        </p>
-                        <p className="text-gray-500 text-sm">
-                          {team.wins} {parseInt(team.wins) === 1 ? "win" : "wins"}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* ── CHARTS TAB ── */}
-          {activeTab === "charts" && (
-            <div className="space-y-6">
-
-              {/* Quick stats */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="carbon-card p-4">
-                  <p className="text-gray-500 text-xs uppercase tracking-widest mb-1">Leader</p>
-                  <p className="text-white font-bold text-lg f1-number">
-                    {driverStandings[0]?.driver_code}
-                  </p>
-                  <p className="text-f1-gold font-black text-xl f1-number">
-                    {driverStandings[0]?.points} pts
+                  <p className="ml-auto text-f1-gold font-black text-xl f1-number shrink-0">
+                    {driverStandings[0]?.points}
+                    <span className="text-gray-500 text-xs font-normal ml-0.5">pts</span>
                   </p>
                 </div>
-
-                <div className="carbon-card p-4">
-                  <p className="text-gray-500 text-xs uppercase tracking-widest mb-1">P2 Gap</p>
-                  <p className="text-white font-bold text-lg f1-number">
-                    {driverStandings[1]?.driver_code}
-                  </p>
-                  <p className="text-f1-red font-black text-xl f1-number">
+                <div className="carbon-card p-3 flex items-center gap-3">
+                  <div className="min-w-0">
+                    <p className="text-gray-500 text-[10px] uppercase tracking-widest">Gap to Leader</p>
+                    <p className="text-white font-bold text-base mt-0.5 truncate">
+                      {driverStandings[1]?.driver_name}
+                    </p>
+                  </div>
+                  <p className="ml-auto text-f1-red font-black text-xl f1-number shrink-0">
                     -{(
                       parseFloat(driverStandings[0]?.points || "0") -
                       parseFloat(driverStandings[1]?.points || "0")
-                    ).toFixed(0)} pts
-                  </p>
-                </div>
-
-                <div className="carbon-card p-4">
-                  <p className="text-gray-500 text-xs uppercase tracking-widest mb-1">Top Constructor</p>
-                  <p className="text-white font-bold text-lg">
-                    {constructorStandings[0]?.team.split(" ")[0]}
-                  </p>
-                  <p
-                    className="font-black text-xl f1-number"
-                    style={{ color: getTeamColor(constructorStandings[0]?.team) }}
-                  >
-                    {constructorStandings[0]?.points} pts
-                  </p>
-                </div>
-
-                <div className="carbon-card p-4">
-                  <p className="text-gray-500 text-xs uppercase tracking-widest mb-1">Constructor Gap</p>
-                  <p className="text-white font-bold text-lg">
-                    {constructorStandings[1]?.team.split(" ")[0]}
-                  </p>
-                  <p className="text-f1-red font-black text-xl f1-number">
-                    -{(
-                      parseFloat(constructorStandings[0]?.points || "0") -
-                      parseFloat(constructorStandings[1]?.points || "0")
-                    ).toFixed(0)} pts
+                    ).toFixed(0)}
+                    <span className="text-gray-500 text-xs font-normal ml-0.5">pts</span>
                   </p>
                 </div>
               </div>
 
-              <ChampionshipGapChart standings={driverStandings} />
+              {/* Two-column: standings left, charts right */}
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_390px] gap-5 items-start">
 
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                <DriverPointsChart standings={driverStandings} />
-                <ConstructorPointsChart standings={constructorStandings} />
+                {/* Standings list */}
+                <div className="space-y-2">
+                  {driverStandings.map((driver, index) => {
+                    const points     = parseFloat(driver.points);
+                    const percentage = (points / maxDriverPoints) * 100;
+                    return (
+                      <div key={driver.driver_code} className="carbon-card card-hover p-4">
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 text-center shrink-0">
+                            <span className={[
+                              "text-lg font-black f1-number",
+                              index === 0 ? "pos-1" : "",
+                              index === 1 ? "pos-2" : "",
+                              index === 2 ? "pos-3" : "",
+                              index  > 2  ? "text-gray-600" : "",
+                            ].join(" ")}>
+                              P{driver.position}
+                            </span>
+                          </div>
+                          <DriverBadge
+                            driverCode={driver.driver_code}
+                            driverName={driver.driver_name}
+                            driverNumber={driver.driver_number}
+                            team={driver.team}
+                            variant="number"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-bold text-white">{driver.driver_name}</span>
+                              <TeamBadge team={driver.team} variant="pill" />
+                            </div>
+                            <p className="text-gray-500 text-sm">{driver.nationality}</p>
+                            <div className="mt-2 flex items-center gap-2">
+                              <div className="flex-1 bg-gray-800 rounded-full h-1.5">
+                                <div
+                                  className="h-1.5 rounded-full transition-all duration-700"
+                                  style={{
+                                    width: `${percentage}%`,
+                                    backgroundColor: getTeamColor(driver.team),
+                                  }}
+                                />
+                              </div>
+                              <span className="text-gray-600 text-xs w-8 text-right">
+                                {Math.round(percentage)}%
+                              </span>
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="text-xl font-black text-white f1-number">
+                              {driver.points}
+                              <span className="text-gray-500 text-sm font-normal ml-1">pts</span>
+                            </p>
+                            <p className="text-gray-500 text-sm">
+                              {driver.wins} {parseInt(driver.wins) === 1 ? "win" : "wins"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Chart panel */}
+                <div className="space-y-4">
+                  <DriverPointsChart standings={driverStandings} />
+                  <ChampionshipGapChart standings={driverStandings} />
+                </div>
+
+              </div>
+            </div>
+          )}
+
+          {/* ═══════════════════════════════════════════════════
+              CONSTRUCTORS — standings list + chart side by side
+              ═══════════════════════════════════════════════════ */}
+          {activeTab === "constructors" && (
+            <div className="space-y-4">
+
+              {/* Quick-stat strip */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="carbon-card p-3 flex items-center gap-3">
+                  <div className="min-w-0">
+                    <p className="text-gray-500 text-[10px] uppercase tracking-widest">Top Constructor</p>
+                    <p className="text-white font-bold text-base mt-0.5 truncate">
+                      {constructorStandings[0]?.team}
+                    </p>
+                  </div>
+                  <p
+                    className="ml-auto font-black text-xl f1-number shrink-0"
+                    style={{ color: getTeamColor(constructorStandings[0]?.team) }}
+                  >
+                    {constructorStandings[0]?.points}
+                    <span className="text-gray-500 text-xs font-normal ml-0.5">pts</span>
+                  </p>
+                </div>
+                <div className="carbon-card p-3 flex items-center gap-3">
+                  <div className="min-w-0">
+                    <p className="text-gray-500 text-[10px] uppercase tracking-widest">Gap to Leader</p>
+                    <p className="text-white font-bold text-base mt-0.5 truncate">
+                      {constructorStandings[1]?.team}
+                    </p>
+                  </div>
+                  <p className="ml-auto text-f1-red font-black text-xl f1-number shrink-0">
+                    -{(
+                      parseFloat(constructorStandings[0]?.points || "0") -
+                      parseFloat(constructorStandings[1]?.points || "0")
+                    ).toFixed(0)}
+                    <span className="text-gray-500 text-xs font-normal ml-0.5">pts</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Two-column: standings left, chart right */}
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_390px] gap-5 items-start">
+
+                {/* Standings list */}
+                <div className="space-y-2">
+                  {constructorStandings.map((team, index) => {
+                    const points     = parseFloat(team.points);
+                    const percentage = (points / maxConstructorPoints) * 100;
+                    return (
+                      <div key={team.team} className="carbon-card card-hover p-4">
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 text-center shrink-0">
+                            <span className={[
+                              "text-lg font-black f1-number",
+                              index === 0 ? "pos-1" : "",
+                              index === 1 ? "pos-2" : "",
+                              index === 2 ? "pos-3" : "",
+                              index  > 2  ? "text-gray-600" : "",
+                            ].join(" ")}>
+                              P{team.position}
+                            </span>
+                          </div>
+                          <div
+                            className="w-12 h-12 rounded-lg flex items-center justify-center text-xs font-black tracking-wider shrink-0"
+                            style={{
+                              backgroundColor: getTeamColor(team.team) + "22",
+                              color:           getTeamColor(team.team),
+                              border:         `1px solid ${getTeamColor(team.team)}33`,
+                            }}
+                          >
+                            {team.team.slice(0, 3).toUpperCase()}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold text-white">{team.team}</p>
+                            <p className="text-gray-500 text-sm">{team.nationality}</p>
+                            <div className="mt-2 flex items-center gap-2">
+                              <div className="flex-1 bg-gray-800 rounded-full h-1.5">
+                                <div
+                                  className="h-1.5 rounded-full transition-all duration-700"
+                                  style={{
+                                    width: `${percentage}%`,
+                                    backgroundColor: getTeamColor(team.team),
+                                  }}
+                                />
+                              </div>
+                              <span className="text-gray-600 text-xs w-8 text-right">
+                                {Math.round(percentage)}%
+                              </span>
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="text-xl font-black text-white f1-number">
+                              {team.points}
+                              <span className="text-gray-500 text-sm font-normal ml-1">pts</span>
+                            </p>
+                            <p className="text-gray-500 text-sm">
+                              {team.wins} {parseInt(team.wins) === 1 ? "win" : "wins"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Chart */}
+                <div>
+                  <ConstructorPointsChart standings={constructorStandings} />
+                </div>
+
               </div>
             </div>
           )}

@@ -3,7 +3,7 @@ import { getTeamColor } from "@/lib/teamColors";
 interface DriverBadgeProps {
   driverCode: string;
   driverName: string;
-  driverNumber: string;
+  driverNumber?: string;
   team: string;
   // "full"    → number + code + surname
   // "compact" → code only (colored)
@@ -15,7 +15,7 @@ interface DriverBadgeProps {
 export default function DriverBadge({
   driverCode,
   driverName,
-  driverNumber,
+  driverNumber = "",
   team,
   variant = "full",
   isLeader = false,

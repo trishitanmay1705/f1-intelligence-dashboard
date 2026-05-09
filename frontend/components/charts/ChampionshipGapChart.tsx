@@ -68,17 +68,16 @@ export default function ChampionshipGapChart({ standings }: Props) {
   }));
 
   return (
-    <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
-      <div className="mb-6">
-        <h3 className="text-lg font-bold text-white">
-          Championship Gap to Leader
-        </h3>
-        <p className="text-gray-400 text-sm mt-1">
-          Points deficit from {standings[0]?.driver_name} ({standings[0]?.points} pts)
-        </p>
-      </div>
+    <div className="carbon-card p-4">
+      <p className="text-gray-500 text-[10px] uppercase tracking-widest mb-1">Gap Analysis</p>
+      <h3 className="text-sm font-black text-white uppercase tracking-wide">
+        Gap to Leader
+      </h3>
+      <p className="text-gray-600 text-xs mt-0.5 mb-4">
+        Deficit from {standings[0]?.driver_name} · {standings[0]?.points} pts
+      </p>
 
-      <ResponsiveContainer width="100%" height={420}>
+      <ResponsiveContainer width="100%" height={360}>
         <BarChart
           data={data}
           layout="vertical"

@@ -211,3 +211,27 @@ body {
 .table-row-hover:hover {
   background-color: rgba(255,255,255,0.04);
 }
+
+/* ═══════════════════════════════════
+   F1 LOGO & ANIMATION KEYFRAMES
+   ═══════════════════════════════════ */
+
+/* Wheel / tyre spinning */
+@keyframes wheelSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Speed lines shoot from right to left */
+@keyframes speedLine {
+  0%   { transform: translateX(0);     opacity: 0;   }
+  12%  { opacity: 1; }
+  88%  { opacity: 0.8; }
+  100% { transform: translateX(-900px); opacity: 0;  }
+}
+
+/* F1 logo glow breathe */
+@keyframes f1GlowPulse {
+  0%, 100% { opacity: 0.28; }
+  50%      { opacity: 0.52; }
+}
