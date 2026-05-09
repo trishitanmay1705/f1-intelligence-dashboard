@@ -3,45 +3,53 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { clsx } from "clsx";
+import F1Logo from "./F1Logo";
 
-// Define our navigation links
 const NAV_LINKS = [
-  { href: "/",           label: "Dashboard",   icon: "🏠" },
-  { href: "/results",    label: "Results",      icon: "🏁" },
-  { href: "/standings",  label: "Standings",    icon: "🏆" },
-  { href: "/calendar",   label: "Calendar",     icon: "📅" },
+  { href: "/",          label: "Dashboard",  icon: "🏠" },
+  { href: "/results",   label: "Results",    icon: "🏁" },
+  { href: "/standings", label: "Standings",  icon: "🏆" },
+  { href: "/calendar",  label: "Calendar",   icon: "📅" },
 ];
 
 export default function Navbar() {
-  // usePathname() = tells us which page we're on
-  // Used to highlight the active nav link
   const pathname = usePathname();
 
   return (
-    <header className="border-b border-gray-800 bg-gray-900 sticky top-0 z-50">
+    <header className="racing-stripe bg-f1-carbon border-b border-white/5 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4">
 
-        {/* Top row - Logo + Status */}
+        {/* Top row */}
         <div className="flex items-center justify-between py-3">
-          <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-            <span className="text-2xl">🏎️</span>
-            <div>
-              <h1 className="text-lg font-bold text-white leading-none">
-                F1 Intelligence
-              </h1>
-              <p className="text-gray-400 text-xs">2026 Season</p>
+
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-3 group">
+            <div className="bg-f1-dark border border-white/10 rounded-lg px-3 py-2 group-hover:border-f1-red/50 transition-colors">
+              <F1Logo size="sm" />
+            </div>
+            <div className="hidden sm:block">
+              <p className="text-xs text-gray-500 tracking-widest uppercase">
+                Intelligence Dashboard
+              </p>
             </div>
           </Link>
 
-          {/* Live indicator */}
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-            <span className="text-green-400 text-sm">Live Data</span>
+          {/* Right side */}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/20 rounded-full px-3 py-1.5">
+              <div className="live-dot" />
+              <span className="text-green-400 text-xs font-bold uppercase tracking-wider">
+                Live
+              </span>
+            </div>
+            <div className="hidden sm:block f1-badge">
+              2026 Season
+            </div>
           </div>
         </div>
 
-        {/* Bottom row - Nav Links */}
-        <nav className="flex gap-1 pb-0">
+        {/* Nav links */}
+        <nav className="flex gap-0.5">
           {NAV_LINKS.map((link) => {
             const isActive = pathname === link.href;
             return (
@@ -49,17 +57,18 @@ export default function Navbar() {
                 key={link.href}
                 href={link.href}
                 className={clsx(
-                  // Base styles for all links
-                  "flex items-center gap-2 px-4 py-2 text-sm font-medium",
-                  "rounded-t-lg transition-colors border-b-2",
-                  // Active page styles
+                  "flex items-center gap-2 px-4 py-2.5 text-sm font-semibold",
+                  "rounded-t-lg transition-all duration-200",
+                  "border-b-2 tracking-wide uppercase",
                   isActive
-                    ? "text-white border-red-500 bg-gray-800"
-                    : "text-gray-400 border-transparent hover:text-white hover:bg-gray-800"
+                    ? ["text-white", "border-f1-red", "bg-white/5"]
+                    : ["text-gray-500", "border-transparent",
+                       "hover:text-white", "hover:bg-white/5",
+                       "hover:border-white/20"]
                 )}
               >
-                <span>{link.icon}</span>
-                <span>{link.label}</span>
+                <span className="text-base">{link.icon}</span>
+                <span className="hidden sm:block">{link.label}</span>
               </Link>
             );
           })}
