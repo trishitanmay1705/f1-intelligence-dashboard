@@ -1,0 +1,237 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ═══════════════════════════════════════════
+   F1 INTELLIGENCE DASHBOARD - GLOBAL STYLES
+   ═══════════════════════════════════════════ */
+
+/* ── Base Reset ── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* ── Body: F1 Dark Theme ── */
+body {
+  background-color: #15151e;
+  color: #ffffff;
+  font-family: var(--font-titillium), "Titillium Web", "Inter", sans-serif;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Subtle radial gradient - darker in center like a stadium */
+  background-image: radial-gradient(
+    ellipse 80% 50% at 50% -10%,
+    rgba(225, 6, 0, 0.08),
+    transparent
+  );
+}
+
+/* ── Custom Scrollbar ── */
+::-webkit-scrollbar       { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #1a1a2e; }
+::-webkit-scrollbar-thumb { background: #e10600; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #ff3322; }
+
+/* ── Text Selection: F1 Red ── */
+::selection {
+  background-color: #e10600;
+  color: white;
+}
+
+/* ═══════════════════════
+   RACING STRIPE
+   Animated gradient bar
+   ═══════════════════════ */
+.racing-stripe {
+  position: relative;
+}
+
+.racing-stripe::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    #e10600 0%,
+    #ff6600 25%,
+    #ffcc00 50%,
+    #ff6600 75%,
+    #e10600 100%
+  );
+  background-size: 200% 100%;
+  animation: stripeFlow 3s linear infinite;
+  z-index: 10;
+}
+
+/* ═══════════════════════
+   CARBON FIBER CARD
+   ═══════════════════════ */
+.carbon-card {
+  background-color: #1a1a2e;
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 2px,
+    rgba(255,255,255,0.012) 2px,
+    rgba(255,255,255,0.012) 4px
+  );
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 0.75rem;
+}
+
+/* ═══════════════════════
+   CARD HOVER EFFECT
+   ═══════════════════════ */
+.card-hover {
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.08);
+}
+
+/* ═══════════════════════
+   LIVE INDICATOR
+   ═══════════════════════ */
+.live-dot {
+  width: 8px;
+  height: 8px;
+  background: #22c55e;
+  border-radius: 50%;
+  position: relative;
+}
+
+.live-dot::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: rgba(34, 197, 94, 0.4);
+  animation: livePulse 2s ease-in-out infinite;
+}
+
+/* ═══════════════════════
+   F1 BADGE (Red pill)
+   ═══════════════════════ */
+.f1-badge {
+  background: linear-gradient(135deg, #e10600, #c0392b);
+  color: white;
+  font-weight: 700;
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+}
+
+/* ═══════════════════════
+   TEAM GLOW
+   Add --team-color CSS var
+   to parent element
+   ═══════════════════════ */
+.team-glow {
+  box-shadow: 0 0 16px var(--team-color, rgba(255,255,255,0.1));
+  transition: box-shadow 0.3s ease;
+}
+
+/* ═══════════════════════
+   SECTOR COLORS
+   (used for lap times)
+   ═══════════════════════ */
+.sector-purple { color: #b040ff; font-weight: 700; }
+.sector-yellow { color: #e4b600; font-weight: 700; }
+.sector-green  { color: #22c55e; font-weight: 700; }
+
+/* ═══════════════════════
+   POSITION MEDALS
+   ═══════════════════════ */
+.pos-1 { color: #ffd700; }
+.pos-2 { color: #c0c0c0; }
+.pos-3 { color: #cd7f32; }
+
+/* ═══════════════════════
+   PAGE ENTRANCE
+   Wrap page in this class
+   ═══════════════════════ */
+.page-enter {
+  animation: slideUp 0.4s ease-out both;
+}
+
+/* ═══════════════════════
+   STAGGER HELPERS
+   For animating lists
+   ═══════════════════════ */
+.stagger > *:nth-child(1)  { animation-delay: 0.05s; }
+.stagger > *:nth-child(2)  { animation-delay: 0.10s; }
+.stagger > *:nth-child(3)  { animation-delay: 0.15s; }
+.stagger > *:nth-child(4)  { animation-delay: 0.20s; }
+.stagger > *:nth-child(5)  { animation-delay: 0.25s; }
+.stagger > *:nth-child(6)  { animation-delay: 0.30s; }
+.stagger > *:nth-child(7)  { animation-delay: 0.35s; }
+.stagger > *:nth-child(8)  { animation-delay: 0.40s; }
+
+/* ═══════════════════════
+   NUMBER STYLES
+   ═══════════════════════ */
+.f1-number {
+  font-family: var(--font-titillium), monospace;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ═══════════════════════
+   GRADIENT TEXT
+   ═══════════════════════ */
+.gradient-text {
+  background: linear-gradient(135deg, #e10600, #ff6600);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ═══════════════════════
+   TABLE ROW HOVER
+   ═══════════════════════ */
+.table-row-hover {
+  transition: background-color 0.15s ease;
+  cursor: default;
+}
+
+.table-row-hover:hover {
+  background-color: rgba(255,255,255,0.04);
+}
+
+/* ═══════════════════════════════════
+   F1 LOGO & ANIMATION KEYFRAMES
+   ═══════════════════════════════════ */
+
+/* Wheel / tyre spinning */
+@keyframes wheelSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Speed lines shoot from right to left */
+@keyframes speedLine {
+  0%   { transform: translateX(0);     opacity: 0;   }
+  12%  { opacity: 1; }
+  88%  { opacity: 0.8; }
+  100% { transform: translateX(-900px); opacity: 0;  }
+}
+
+/* F1 logo glow breathe */
+@keyframes f1GlowPulse {
+  0%, 100% { opacity: 0.28; }
+  50%      { opacity: 0.52; }
+}
