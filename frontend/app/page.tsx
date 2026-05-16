@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { f1Api, DriverStanding, ConstructorStanding, Race } from "@/lib/api";
 import { getTeamColor } from "@/lib/teamColors";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
@@ -203,7 +204,8 @@ export default function Dashboard() {
                 {driverStandings.slice(0, 10).map((driver, index) => (
                   <tr
                     key={driver.driver_code}
-                    className="table-row-hover border-b border-white/3"
+                    className="table-row-hover border-b border-white/3 animate-fade-in"
+                    style={{ animationDelay: `${index * 30}ms` }}
                   >
                     <td className="px-4 py-3">
                       <span className={`
@@ -270,7 +272,8 @@ export default function Dashboard() {
                 {constructorStandings.map((team, index) => (
                   <tr
                     key={team.team}
-                    className="table-row-hover border-b border-white/3"
+                    className="table-row-hover border-b border-white/3 animate-fade-in"
+                    style={{ animationDelay: `${index * 30}ms` }}
                   >
                     <td className="px-4 py-3">
                       <span className={`
@@ -318,17 +321,20 @@ export default function Dashboard() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-            {season?.races.map((race) => {
+            {season?.races.map((race, index) => {
               const raceDate = new Date(race.date);
               const isPast   = raceDate < new Date();
               return (
-                <div
+                <Link
                   key={race.round}
+                  href={`/calendar?round=${race.round}`}
                   className={`
-                    p-4 border-b border-r border-white/3
-                    hover:bg-white/3 transition-colors
-                    ${isPast ? "opacity-40" : ""}
+                    block p-4 border-b border-r border-white/3 group
+                    hover:bg-white/[0.06] transition-colors duration-150
+                    animate-fade-in cursor-pointer
+                    ${isPast ? "opacity-40 hover:opacity-70" : ""}
                   `}
+                  style={{ animationDelay: `${index * 20}ms` }}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
@@ -342,7 +348,7 @@ export default function Dashboard() {
                           </span>
                         )}
                       </div>
-                      <p className="font-bold text-sm text-white truncate">
+                      <p className="font-bold text-sm text-white group-hover:text-f1-red transition-colors duration-200 truncate">
                         {race.race_name}
                       </p>
                       <p className="text-gray-600 text-xs mt-0.5">
@@ -355,9 +361,12 @@ export default function Dashboard() {
                           day: "numeric", month: "short",
                         })}
                       </p>
+                      <p className="text-gray-600 text-[10px] mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        View details →
+                      </p>
                     </div>
                   </div>
-                </div>
+                </Link>
               );
             })}
           </div>

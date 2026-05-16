@@ -16,7 +16,7 @@ export default function Navbar() {
   const pathname = usePathname();
 
   return (
-    <header className="racing-stripe bg-f1-carbon border-b border-white/5 sticky top-0 z-50">
+    <header className="racing-stripe bg-f1-carbon/95 backdrop-blur-md border-b border-white/5 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4">
 
         {/* Top row */}
@@ -24,11 +24,11 @@ export default function Navbar() {
 
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="bg-f1-dark border border-white/10 rounded-lg px-3 py-2 group-hover:border-f1-red/50 transition-colors">
+            <div className="bg-f1-dark border border-white/10 rounded-lg px-3 py-2 group-hover:border-f1-red/50 group-hover:shadow-f1-glow transition-all duration-300">
               <F1Logo size="sm" />
             </div>
             <div className="hidden sm:block">
-              <p className="text-xs text-gray-500 tracking-widest uppercase">
+              <p className="text-xs text-gray-500 tracking-widest uppercase transition-colors duration-200 group-hover:text-gray-400">
                 Intelligence Dashboard
               </p>
             </div>
@@ -59,7 +59,7 @@ export default function Navbar() {
                 className={clsx(
                   "flex items-center gap-2 px-4 py-2.5 text-sm font-semibold",
                   "rounded-t-lg transition-all duration-200",
-                  "border-b-2 tracking-wide uppercase",
+                  "border-b-2 tracking-wide uppercase group",
                   isActive
                     ? ["text-white", "border-f1-red", "bg-white/5"]
                     : ["text-gray-500", "border-transparent",
@@ -67,7 +67,9 @@ export default function Navbar() {
                        "hover:border-white/20"]
                 )}
               >
-                <span className="text-base">{link.icon}</span>
+                <span className="text-base transition-transform duration-200 group-hover:scale-110 inline-block">
+                  {link.icon}
+                </span>
                 <span className="hidden sm:block">{link.label}</span>
               </Link>
             );

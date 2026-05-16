@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { f1Api, DriverStanding, ConstructorStanding } from "@/lib/api";
 import { getTeamColor } from "@/lib/teamColors";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
@@ -10,6 +11,7 @@ import F1Logo from "@/components/ui/F1Logo";
 import DriverPointsChart from "@/components/charts/DriverPointsChart";
 import ConstructorPointsChart from "@/components/charts/ConstructorPointsChart";
 import ChampionshipGapChart from "@/components/charts/ChampionshipGapChart";
+
 
 type Tab = "drivers" | "constructors";
 
@@ -66,7 +68,7 @@ export default function StandingsPage() {
         <select
           value={season}
           onChange={(e) => setSeason(e.target.value)}
-          className="bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-f1-red cursor-pointer"
+          className="bg-gray-800/80 border border-gray-700 text-white rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-f1-red cursor-pointer transition-colors duration-200 hover:border-gray-500"
         >
           <option value="current">2026 (Current)</option>
           <option value="2025">2025</option>
@@ -85,13 +87,14 @@ export default function StandingsPage() {
             onClick={() => setActiveTab(tab.id)}
             className={[
               "flex items-center gap-2 px-5 py-3 text-sm font-semibold",
-              "border-b-2 transition-colors uppercase tracking-wide",
+              "border-b-2 transition-all duration-200 uppercase tracking-wide",
+              "btn-interactive",
               activeTab === tab.id
                 ? "border-f1-red text-white"
                 : "border-transparent text-gray-500 hover:text-white",
             ].join(" ")}
           >
-            <span>{tab.icon}</span>
+            <span className="transition-transform duration-200 group-hover:scale-110">{tab.icon}</span>
             <span>{tab.label}</span>
           </button>
         ))}
@@ -105,7 +108,7 @@ export default function StandingsPage() {
               DRIVERS — standings list + charts side by side
               ═══════════════════════════════════════════════════ */}
           {activeTab === "drivers" && (
-            <div className="space-y-4">
+            <div key="drivers" className="space-y-4 tab-panel-enter">
 
               {/* Quick-stat strip */}
               <div className="grid grid-cols-2 gap-3">
@@ -147,7 +150,13 @@ export default function StandingsPage() {
                     const points     = parseFloat(driver.points);
                     const percentage = (points / maxDriverPoints) * 100;
                     return (
-                      <div key={driver.driver_code} className="carbon-card card-hover p-4">
+                      <Link
+                        key={driver.driver_id || driver.driver_code}
+                        href={`/drivers/${driver.driver_id}`}
+                        className="block carbon-card card-hover p-4 group cursor-pointer
+                                   hover:border-f1-red/40 transition-colors animate-pop-in"
+                        style={{ animationDelay: `${index * 40}ms` }}
+                      >
                         <div className="flex items-center gap-4">
                           <div className="w-10 text-center shrink-0">
                             <span className={[
@@ -169,8 +178,13 @@ export default function StandingsPage() {
                           />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-bold text-white">{driver.driver_name}</span>
+                              <span className="font-bold text-white group-hover:text-f1-red transition-colors">
+                                {driver.driver_name}
+                              </span>
                               <TeamBadge team={driver.team} variant="pill" />
+                              <span className="ml-auto text-gray-600 text-xs opacity-0 group-hover:opacity-100 transition-opacity">
+                                View career →
+                              </span>
                             </div>
                             <p className="text-gray-500 text-sm">{driver.nationality}</p>
                             <div className="mt-2 flex items-center gap-2">
@@ -198,7 +212,7 @@ export default function StandingsPage() {
                             </p>
                           </div>
                         </div>
-                      </div>
+                      </Link>
                     );
                   })}
                 </div>
@@ -217,7 +231,7 @@ export default function StandingsPage() {
               CONSTRUCTORS — standings list + chart side by side
               ═══════════════════════════════════════════════════ */}
           {activeTab === "constructors" && (
-            <div className="space-y-4">
+            <div key="constructors" className="space-y-4 tab-panel-enter">
 
               {/* Quick-stat strip */}
               <div className="grid grid-cols-2 gap-3">
@@ -262,7 +276,11 @@ export default function StandingsPage() {
                     const points     = parseFloat(team.points);
                     const percentage = (points / maxConstructorPoints) * 100;
                     return (
-                      <div key={team.team} className="carbon-card card-hover p-4">
+                      <div
+                        key={team.team}
+                        className="carbon-card card-hover p-4 animate-pop-in"
+                        style={{ animationDelay: `${index * 40}ms` }}
+                      >
                         <div className="flex items-center gap-4">
                           <div className="w-10 text-center shrink-0">
                             <span className={[

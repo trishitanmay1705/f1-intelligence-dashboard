@@ -2,17 +2,15 @@ import axios from "axios";
 
 const apiClient = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
-  timeout: 10000, // 10 seconds
-  headers: {
-    "Content-Type": "application/json",
-  },
+  timeout: 30000, // bumped to 30s for slow career endpoint on cold cache
+  headers: { "Content-Type": "application/json" },
 });
-
 
 export interface DriverStanding {
   position: string;
   points: string;
   wins: string;
+  driver_id: string;
   driver_code: string;
   driver_name: string;
   driver_number: string;
@@ -56,6 +54,7 @@ export interface Race {
 
 export interface RaceResult {
   position: string;
+  driver_id: string;
   driver_code: string;
   driver_name: string;
   team: string;
@@ -66,53 +65,161 @@ export interface RaceResult {
   fastest_lap: string;
 }
 
-// ─────────────────────────────────────────
-// API FUNCTIONS
-// ─────────────────────────────────────────
+export interface QualifyingResult {
+  position: string;
+  driver_code: string;
+  driver_name: string;
+  team: string;
+  q1: string;
+  q2: string;
+  q3: string;
+}
+
+export interface QualifyingData {
+  season: string;
+  round: string;
+  race_name: string;
+  results: QualifyingResult[];
+}
+
+export interface SprintResult {
+  position: string;
+  driver_code: string;
+  driver_name: string;
+  team: string;
+  laps: string;
+  status: string;
+  points: string;
+  grid: string;
+}
+
+export interface SprintData {
+  season: string;
+  round: string;
+  race_name: string;
+  results: SprintResult[];
+}
+
+// ─── Lap-by-Lap Types ────────────────────────────────
+
+export interface LapDataDriver {
+  code: string;
+  team: string;
+}
+
+export interface LapEntry {
+  lap: number;
+  positions: Record<string, number>;
+}
+
+export interface LapData {
+  season: string;
+  round: string;
+  race_name: string;
+  total_laps: number;
+  drivers: LapDataDriver[];
+  laps: LapEntry[];
+}
+
+// ─── Driver Career Types ─────────────────────────────
+
+export interface DriverBio {
+  driver_id: string;
+  code: string;
+  number: string | null;
+  first_name: string;
+  last_name: string;
+  full_name: string;
+  nationality: string;
+  date_of_birth: string | null;
+  wikipedia_url: string | null;
+}
+
+export interface DriverSeasonSummary {
+  season: string;
+  position: string;
+  points: number;
+  wins: number;
+  team: string;
+}
+
+export interface DriverCareerTotals {
+  seasons_count: number;
+  first_season: string | null;
+  last_season: string | null;
+  championships: number;
+  wins: number;
+  podiums: number;
+  poles: number;
+  points: number;
+  teams: string[];
+}
+
+export interface DriverCareer {
+  driver: DriverBio;
+  career: DriverCareerTotals;
+  seasons: DriverSeasonSummary[];
+}
+
+export interface DriverListEntry {
+  driver_id: string;
+  code: string;
+  first_name: string;
+  last_name: string;
+  nationality: string;
+  number: string | null;
+}
+
+// ─── API client ─────────────────────────────
 
 export const f1Api = {
-
-  // Get driver championship standings
   getDriverStandings: async (season = "current") => {
-    const response = await apiClient.get(
-      `/api/v1/f1/standings/drivers?season=${season}`
-    );
+    const response = await apiClient.get(`/api/v1/f1/standings/drivers?season=${season}`);
     return response.data.data;
   },
-
-  // Get constructor championship standings
   getConstructorStandings: async (season = "current") => {
-    const response = await apiClient.get(
-      `/api/v1/f1/standings/constructors?season=${season}`
-    );
+    const response = await apiClient.get(`/api/v1/f1/standings/constructors?season=${season}`);
     return response.data.data;
   },
-
-  // Get current season race calendar
   getCurrentSeason: async () => {
     const response = await apiClient.get(`/api/v1/f1/season/current`);
     return response.data.data;
   },
-
-  // Get race calendar for any season
   getSeason: async (season: string) => {
     const response = await apiClient.get(`/api/v1/f1/season/${season}`);
     return response.data.data;
   },
-
-  // Get last race results
   getLastRaceResults: async () => {
-    const response = await apiClient.get(
-      `/api/v1/f1/results/last`
-    );
+    const response = await apiClient.get(`/api/v1/f1/results/last`);
     return response.data.data;
   },
-
-  // Get specific race results
   getRaceResults: async (season: string, round: string) => {
-    const response = await apiClient.get(
-      `/api/v1/f1/results/${season}/${round}`
-    );
+    const response = await apiClient.get(`/api/v1/f1/results/${season}/${round}`);
+    return response.data.data;
+  },
+  getQualifyingResults: async (season: string, round: string): Promise<QualifyingData> => {
+    const response = await apiClient.get(`/api/v1/f1/qualifying/${season}/${round}`);
+    return response.data.data;
+  },
+  getSprintResults: async (season: string, round: string): Promise<SprintData> => {
+    const response = await apiClient.get(`/api/v1/f1/sprint/${season}/${round}`);
+    return response.data.data;
+  },
+  getLapData: async (season: string, round: string): Promise<LapData> => {
+    const response = await apiClient.get(`/api/v1/f1/laps/${season}/${round}`);
+    return response.data.data;
+  },
+  // ─── Driver endpoints ─────────────────────────────
+  getDriver: async (driverId: string): Promise<DriverBio> => {
+    const response = await apiClient.get(`/api/v1/f1/drivers/${driverId}`);
+    return response.data.data;
+  },
+  getDriverCareer: async (driverId: string): Promise<DriverCareer> => {
+    const response = await apiClient.get(`/api/v1/f1/drivers/${driverId}/career`);
+    return response.data.data;
+  },
+  listDrivers: async (season = "current"): Promise<DriverListEntry[]> => {
+    const response = await apiClient.get(`/api/v1/f1/drivers?season=${season}`);
     return response.data.data;
   },
 };
