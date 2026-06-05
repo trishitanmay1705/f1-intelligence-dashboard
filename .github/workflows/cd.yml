@@ -1,0 +1,121 @@
+name: CD
+
+# Only deploy when code is merged/pushed directly to master
+on:
+  push:
+    branches: [master]
+
+env:
+  REGISTRY: ghcr.io
+  # These expand to e.g. ghcr.io/trishitanmay1705/f1-intelligence-backend
+  BACKEND_IMAGE:  ghcr.io/${{ github.repository_owner }}/f1-intelligence-backend
+  FRONTEND_IMAGE: ghcr.io/${{ github.repository_owner }}/f1-intelligence-frontend
+
+jobs:
+
+  # ── Job 1: Build images and push to GitHub Container Registry ─
+  build-and-push:
+    name: "Build & Push Docker Images"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write       # needed to push to GHCR
+    outputs:
+      image-tag: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Log in to GHCR using the built-in GITHUB_TOKEN — no extra secret needed
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Build + push backend
+      # Tag with both :latest and the exact git SHA for traceability
+      - name: Build & push backend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: |
+            ${{ env.BACKEND_IMAGE }}:latest
+            ${{ env.BACKEND_IMAGE }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Build + push frontend
+      # NEXT_PUBLIC_API_URL is baked into the JS bundle at build time.
+      # Store your production API domain in a GitHub Actions secret:
+      #   Settings → Secrets and variables → Actions → New secret
+      #   Name: NEXT_PUBLIC_API_URL
+      #   Value: https://yourdomain.com  (same host as the ingress)
+      - name: Build & push frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: true
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
+          tags: |
+            ${{ env.FRONTEND_IMAGE }}:latest
+            ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ── Job 2: Rolling deploy to Kubernetes ───────────────────────
+  deploy:
+    name: "Deploy to Kubernetes"
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    environment: production      # optional: require manual approval in GitHub
+    steps:
+      - uses: actions/checkout@v4
+
+      # Install kubectl
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+
+      # Write the kubeconfig from a GitHub secret.
+      # How to create the secret:
+      #   1. Copy your ~/.kube/config (or the admin kubeconfig from your server)
+      #   2. base64-encode it:  cat ~/.kube/config | base64 -w 0
+      #   3. Add to GitHub Secrets as KUBECONFIG (the base64 string)
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      # Pin both deployments to the exact image that was just built
+      # (avoids pulling :latest which can be ambiguous)
+      - name: Pin image tags to git SHA
+        run: |
+          sed -i "s|${{ env.BACKEND_IMAGE }}:latest|${{ env.BACKEND_IMAGE }}:${{ github.sha }}|g" \
+            k8s/backend/deployment.yaml
+          sed -i "s|${{ env.FRONTEND_IMAGE }}:latest|${{ env.FRONTEND_IMAGE }}:${{ github.sha }}|g" \
+            k8s/frontend/deployment.yaml
+
+      # Apply manifests in dependency order
+      - name: Apply manifests
+        run: |
+          kubectl apply -f k8s/namespace.yaml
+          kubectl apply -f k8s/backend/
+          kubectl apply -f k8s/frontend/
+          kubectl apply -f k8s/ingress.yaml
+
+      # Wait for rollouts to complete — fails the job if a pod crashes
+      - name: Wait for rollout — backend
+        run: kubectl rollout status deployment/backend  -n f1-dashboard --timeout=120s
+
+      - name: Wait for rollout — frontend
+        run: kubectl rollout status deployment/frontend -n f1-dashboard --timeout=120s
+
+      # Print the ingress address so it's visible in the job summary
+      - name: Show ingress address
+        run: kubectl get ingress -n f1-dashboard

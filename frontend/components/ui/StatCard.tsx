@@ -56,7 +56,7 @@ export default function StatCard({
         carbon-card card-hover
         border-l-4 ${c.border}
         ${c.bg} ${c.glow}
-        p-5 animate-slide-up
+        p-5 animate-pop-in
       `}
     >
       {/* Top label */}

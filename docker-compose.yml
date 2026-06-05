@@ -1,0 +1,42 @@
+# ── Local development docker-compose ─────────────────────────
+# Usage:
+#   docker compose up --build          # start both services
+#   docker compose up backend          # backend only
+#   docker compose logs -f frontend    # follow frontend logs
+
+services:
+
+  backend:
+    build:
+      context: ./backend
+      target: runtime            # skip the deps stage cache in dev
+    container_name: f1-backend
+    ports:
+      - "8000:8000"
+    environment:
+      JOLPICA_BASE_URL: "https://api.jolpi.ca/ergast/f1"
+    volumes:
+      # Mount the cache directory so it persists between restarts
+      - ./backend/cache:/app/cache
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/').raise_for_status()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  frontend:
+    build:
+      context: ./frontend
+      target: runner
+      args:
+        # Points the browser JS at the backend exposed on the host
+        NEXT_PUBLIC_API_URL: "http://localhost:8000"
+    container_name: f1-frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped

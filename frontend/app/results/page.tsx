@@ -7,6 +7,7 @@ import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import TeamBadge from "@/components/ui/TeamBadge";
 import DriverBadge from "@/components/ui/DriverBadge";
 import F1Logo from "@/components/ui/F1Logo";
+import RaceReplayChart from "@/components/charts/RaceReplayChart";
 
 interface SeasonData {
   season: string;
@@ -122,7 +123,7 @@ export default function ResultsPage() {
             <select
               value={selectedSeason}
               onChange={e => setSelectedSeason(e.target.value)}
-              className="bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-f1-red cursor-pointer min-w-[130px]"
+              className="bg-gray-800/80 border border-gray-700 text-white rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-f1-red cursor-pointer transition-colors duration-200 hover:border-gray-500 min-w-[130px]"
             >
               {SEASONS.map(year => (
                 <option key={year} value={year}>{year}</option>
@@ -138,7 +139,7 @@ export default function ResultsPage() {
               value={selectedRound}
               onChange={e => setSelectedRound(e.target.value)}
               disabled={!seasonData || seasonsLoading}
-              className="bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-f1-red cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed w-full"
+              className="bg-gray-800/80 border border-gray-700 text-white rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-f1-red cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed w-full transition-colors duration-200 hover:border-gray-500"
             >
               {!seasonData && <option value="">— select a season first —</option>}
               {seasonData?.races.map(race => {
@@ -252,9 +253,10 @@ export default function ResultsPage() {
                       <tr
                         key={result.driver_code}
                         className={[
-                          "border-b border-white/[0.04] table-row-hover",
+                          "border-b border-white/[0.04] table-row-hover animate-fade-in",
                           index === 0 ? "bg-yellow-500/5" : "",
                         ].join(" ")}
+                        style={{ animationDelay: `${index * 25}ms` }}
                       >
                         <td className="px-4 py-3">
                           <span className={[
@@ -324,6 +326,13 @@ export default function ResultsPage() {
               </table>
             </div>
           </div>
+
+          {/* Race Replay */}
+          <RaceReplayChart
+            key={`${selectedSeason}-${selectedRound}`}
+            season={selectedSeason}
+            round={selectedRound}
+          />
 
         </div>
       )}

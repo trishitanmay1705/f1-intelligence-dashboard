@@ -1,8 +1,8 @@
 ﻿"use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { f1Api, Race, RaceSessions } from "@/lib/api";
+import { useEffect, useState, useCallback } from "react";
+import { f1Api, Race, RaceSessions, QualifyingData, SprintData } from "@/lib/api";
+import { getTeamColor } from "@/lib/teamColors";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import F1Logo from "@/components/ui/F1Logo";
 
@@ -36,6 +36,111 @@ const SESSION_LABELS: { key: keyof RaceSessions; label: string; color: string }[
   { key: "race",              label: "Race",              color: "text-f1-red"     },
 ];
 
+// Sessions for which we can load results
+const RESULT_SESSIONS = new Set<keyof RaceSessions>(["race", "qualifying", "sprint"]);
+
+type SessionResultType =
+  | { type: "race";        data: Awaited<ReturnType<typeof f1Api.getRaceResults>> }
+  | { type: "qualifying";  data: QualifyingData }
+  | { type: "sprint";      data: SprintData };
+
+function SessionResultsTable({ result }: { result: SessionResultType }) {
+  if (result.type === "qualifying") {
+    const rows = result.data.results ?? [];
+    return (
+      <div className="overflow-x-auto max-h-64 overflow-y-auto">
+        <table className="w-full text-xs">
+          <thead className="sticky top-0 bg-[#0d0d15]">
+            <tr className="text-gray-600 uppercase tracking-widest border-b border-white/5">
+              <th className="px-4 py-2 text-left w-10">Pos</th>
+              <th className="px-4 py-2 text-left">Driver</th>
+              <th className="px-4 py-2 text-left hidden sm:table-cell">Team</th>
+              <th className="px-4 py-2 text-right">Q1</th>
+              <th className="px-4 py-2 text-right">Q2</th>
+              <th className="px-4 py-2 text-right text-purple-400">Q3</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => {
+              const teamColor = getTeamColor(r.team);
+              return (
+                <tr key={r.driver_code} className="border-b border-white/[0.03] hover:bg-white/[0.03]">
+                  <td className="px-4 py-2 font-black f1-number">
+                    <span className={i === 0 ? "pos-1" : i === 1 ? "pos-2" : i === 2 ? "pos-3" : "text-gray-600"}>
+                      {r.position}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2">
+                    <span className="font-black text-sm" style={{ color: i < 3 ? teamColor : "white" }}>
+                      {r.driver_code}
+                    </span>
+                    <span className="text-gray-500 text-[11px] hidden sm:inline ml-1">
+                      {r.driver_name.split(" ").slice(1).join(" ")}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2 text-gray-500 hidden sm:table-cell text-[11px]">{r.team}</td>
+                  <td className="px-4 py-2 text-right font-mono text-gray-400">{r.q1 || "—"}</td>
+                  <td className="px-4 py-2 text-right font-mono text-gray-400">{r.q2 || "—"}</td>
+                  <td className="px-4 py-2 text-right font-mono sector-purple">{r.q3 || "—"}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
+  // Race or Sprint
+  const rows = result.data.results ?? [];
+  return (
+    <div className="overflow-x-auto max-h-64 overflow-y-auto">
+      <table className="w-full text-xs">
+        <thead className="sticky top-0 bg-[#0d0d15]">
+          <tr className="text-gray-600 uppercase tracking-widest border-b border-white/5">
+            <th className="px-4 py-2 text-left w-10">Pos</th>
+            <th className="px-4 py-2 text-left">Driver</th>
+            <th className="px-4 py-2 text-left hidden sm:table-cell">Team</th>
+            <th className="px-4 py-2 text-left">Status</th>
+            <th className="px-4 py-2 text-right">Pts</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => {
+            const teamColor = getTeamColor(r.team);
+            const isDNF = r.status !== "Finished" && !r.status.startsWith("+");
+            return (
+              <tr key={r.driver_code} className="border-b border-white/[0.03] hover:bg-white/[0.03]">
+                <td className="px-4 py-2 font-black f1-number">
+                  <span className={i === 0 ? "pos-1" : i === 1 ? "pos-2" : i === 2 ? "pos-3" : "text-gray-600"}>
+                    {r.position}
+                  </span>
+                </td>
+                <td className="px-4 py-2">
+                  <span className="font-black text-sm" style={{ color: i < 3 ? teamColor : "white" }}>
+                    {r.driver_code}
+                  </span>
+                  <span className="text-gray-500 text-[11px] hidden sm:inline ml-1">
+                    {r.driver_name.split(" ").slice(1).join(" ")}
+                  </span>
+                </td>
+                <td className="px-4 py-2 text-gray-500 hidden sm:table-cell text-[11px]">{r.team}</td>
+                <td className="px-4 py-2">
+                  {isDNF
+                    ? <span className="text-red-400 font-semibold">DNF</span>
+                    : <span className="text-green-400">{r.status}</span>
+                  }
+                </td>
+                <td className="px-4 py-2 text-right font-black f1-number text-white">{r.points}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function SessionPanel({
   sessions,
   isPast,
@@ -47,40 +152,110 @@ function SessionPanel({
   season: string;
   round: string;
 }) {
+  const [activeSession, setActiveSession] = useState<keyof RaceSessions | null>(null);
+  const [sessionResult, setSessionResult] = useState<SessionResultType | null>(null);
+  const [loadingSession, setLoadingSession] = useState(false);
+  const [sessionError, setSessionError] = useState<string | null>(null);
+
+  const handleSessionClick = useCallback(async (key: keyof RaceSessions) => {
+    if (!isPast || !RESULT_SESSIONS.has(key)) return;
+
+    // Toggle off
+    if (activeSession === key) {
+      setActiveSession(null);
+      setSessionResult(null);
+      return;
+    }
+
+    setActiveSession(key);
+    setLoadingSession(true);
+    setSessionError(null);
+    setSessionResult(null);
+
+    try {
+      if (key === "race") {
+        const data = await f1Api.getRaceResults(season, round);
+        setSessionResult({ type: "race", data });
+      } else if (key === "qualifying") {
+        const data = await f1Api.getQualifyingResults(season, round);
+        setSessionResult({ type: "qualifying", data });
+      } else if (key === "sprint") {
+        const data = await f1Api.getSprintResults(season, round);
+        setSessionResult({ type: "sprint", data });
+      }
+    } catch {
+      setSessionError("Results not available for this session.");
+    } finally {
+      setLoadingSession(false);
+    }
+  }, [isPast, activeSession, season, round]);
+
   const rows = SESSION_LABELS.filter(({ key }) => sessions[key] !== null);
 
   return (
     <div className="mt-3 rounded-xl border border-white/10 bg-black/30 overflow-hidden">
-      <div className="grid divide-y divide-white/5">
+      <div className="divide-y divide-white/5">
         {rows.map(({ key, label, color }) => {
           const s = sessions[key];
           if (!s) return null;
+          const isClickable = isPast && RESULT_SESSIONS.has(key);
+          const isActive = activeSession === key;
+
           return (
-            <div
-              key={key}
-              className="flex items-center justify-between px-5 py-3 hover:bg-white/[0.03] transition-colors"
-            >
-              <span className={`text-xs font-bold uppercase tracking-wider ${color}`}>
-                {label}
-              </span>
-              <div className="text-right">
-                <span className="text-white text-sm font-mono">{fmtDate(s.date)}</span>
-                <span className="text-gray-500 text-xs ml-3">{fmtTime(s.time)}</span>
+            <div key={key}>
+              {/* Session row */}
+              <div
+                className={[
+                  "flex items-center justify-between px-5 py-3 transition-colors duration-150",
+                  isClickable ? "cursor-pointer hover:bg-white/[0.05] select-none" : "",
+                  isActive ? "bg-white/[0.04]" : "",
+                ].join(" ")}
+                onClick={() => handleSessionClick(key)}
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className={`text-xs font-bold uppercase tracking-wider ${color}`}>
+                    {label}
+                  </span>
+                  {isClickable && (
+                    <span className={[
+                      "text-[10px] uppercase tracking-wide transition-colors duration-150",
+                      isActive ? "text-gray-400" : "text-gray-600",
+                    ].join(" ")}>
+                      {isActive ? "▲ hide" : "▼ results"}
+                    </span>
+                  )}
+                </div>
+                <div className="text-right">
+                  <span className="text-white text-sm font-mono">{fmtDate(s.date)}</span>
+                  <span className="text-gray-500 text-xs ml-3">{fmtTime(s.time)}</span>
+                </div>
+              </div>
+
+              {/* Inline results panel — animated with expand-grid */}
+              <div className={`expand-grid${isActive ? " open" : ""}`}>
+                <div>
+                  <div className="border-t border-white/5 bg-black/20">
+                    {loadingSession && activeSession === key && (
+                      <div className="px-5 py-5 flex items-center justify-center gap-3">
+                        <div className="w-4 h-4 border-2 border-f1-red border-t-transparent rounded-full animate-spin" />
+                        <span className="text-gray-500 text-xs uppercase tracking-widest">Loading results…</span>
+                      </div>
+                    )}
+                    {sessionError && activeSession === key && !loadingSession && (
+                      <div className="px-5 py-4 text-center">
+                        <p className="text-red-400 text-xs">{sessionError}</p>
+                      </div>
+                    )}
+                    {sessionResult && activeSession === key && !loadingSession && (
+                      <SessionResultsTable result={sessionResult} />
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           );
         })}
       </div>
-      {isPast && (
-        <div className="px-5 py-3 border-t border-white/5 flex justify-end">
-          <Link
-            href={`/results/${season}/${round}`}
-            className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-f1-red hover:text-red-400 transition-colors"
-          >
-            View Race Results →
-          </Link>
-        </div>
-      )}
     </div>
   );
 }
@@ -95,9 +270,25 @@ export default function CalendarPage() {
       try {
         const data = await f1Api.getCurrentSeason();
         setSeasonData(data);
-        const today = new Date();
-        const next = data.races.find((r: Race) => new Date(r.date) >= today);
-        if (next) setExpandedRound(next.round);
+
+        // Check for ?round=X in URL (coming from the home page calendar)
+        const params = new URLSearchParams(window.location.search);
+        const roundParam = params.get("round");
+
+        if (roundParam) {
+          setExpandedRound(roundParam);
+          // Smooth scroll to the race row after a brief render delay
+          setTimeout(() => {
+            document.getElementById(`race-round-${roundParam}`)?.scrollIntoView({
+              behavior: "smooth",
+              block: "center",
+            });
+          }, 300);
+        } else {
+          const today = new Date();
+          const next = data.races.find((r: Race) => new Date(r.date) >= today);
+          if (next) setExpandedRound(next.round);
+        }
       } catch (err) {
         console.error(err);
       } finally {
@@ -180,7 +371,7 @@ export default function CalendarPage() {
       <div className="carbon-card overflow-hidden">
         <div className="px-5 py-4 border-b border-white/5">
           <p className="text-gray-500 text-[10px] uppercase tracking-widest">All Races</p>
-          <p className="text-xs text-gray-600 mt-1">Click a race to view the weekend schedule</p>
+          <p className="text-xs text-gray-600 mt-1">Click a race to expand the schedule · Click Race, Qualifying or Sprint to view session results</p>
         </div>
 
         <div className="divide-y divide-white/[0.04]">
@@ -194,19 +385,21 @@ export default function CalendarPage() {
             return (
               <div
                 key={race.round}
+                id={`race-round-${race.round}`}
                 className={[
-                  "transition-colors",
+                  "transition-colors duration-200",
                   isNext ? "bg-blue-500/5 border-l-2 border-blue-500" : "",
                   isPast && !isNext ? "opacity-70" : "",
                 ].join(" ")}
               >
                 <button
-                  className="w-full text-left px-5 py-4 hover:bg-white/[0.03] transition-colors flex items-center gap-4"
+                  className="w-full text-left px-5 py-4 hover:bg-white/[0.04] transition-colors duration-150 flex items-center gap-4 btn-interactive"
                   onClick={() => setExpandedRound(isExpanded ? null : race.round)}
                 >
                   <div
                     className={[
-                      "w-10 h-10 rounded-full flex items-center justify-center text-sm font-black shrink-0",
+                      "w-10 h-10 rounded-full flex items-center justify-center text-sm font-black shrink-0 transition-transform duration-200",
+                      isExpanded ? "scale-110" : "",
                       isPast ? "bg-gray-800 text-gray-500"
                       : isNext ? "bg-blue-500/20 text-blue-400"
                       : "bg-f1-red/10 text-f1-red",
@@ -248,7 +441,7 @@ export default function CalendarPage() {
                     </div>
                     <span
                       className={[
-                        "text-gray-600 text-xs transition-transform duration-200 inline-block",
+                        "text-gray-500 text-xs transition-transform duration-300 inline-block",
                         isExpanded ? "rotate-180" : "",
                       ].join(" ")}
                     >
@@ -257,16 +450,21 @@ export default function CalendarPage() {
                   </div>
                 </button>
 
-                {isExpanded && race.sessions && (
-                  <div className="px-5 pb-4">
-                    <SessionPanel
-                      sessions={race.sessions}
-                      isPast={isPast}
-                      season={seasonData.season}
-                      round={race.round}
-                    />
+                {/* Smooth expand / collapse using CSS grid trick */}
+                <div className={`expand-grid${isExpanded ? " open" : ""}`}>
+                  <div>
+                    {race.sessions && (
+                      <div className="px-5 pb-4">
+                        <SessionPanel
+                          sessions={race.sessions}
+                          isPast={isPast}
+                          season={seasonData.season}
+                          round={race.round}
+                        />
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
             );
           })}

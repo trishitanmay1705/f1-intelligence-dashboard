@@ -21,14 +21,16 @@ const config: Config = {
 
       // ── Custom Animations ──
       animation: {
-        "slide-up":       "slideUp 0.5s ease-out both",
-        "slide-in":       "slideIn 0.4s ease-out both",
-        "fade-in":        "fadeIn 0.5s ease-out both",
+        "slide-up":       "slideUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both",
+        "slide-in":       "slideIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both",
+        "fade-in":        "fadeIn 0.4s ease-out both",
         "race-in":        "raceIn 0.6s cubic-bezier(0.22,1,0.36,1) both",
         "stripe-flow":    "stripeFlow 3s linear infinite",
         "live-pulse":     "livePulse 2s ease-in-out infinite",
         "car-drive":      "carDrive 1.5s ease-in-out infinite",
-        "count-up":       "countUp 0.6s ease-out both",
+        "count-up":       "countUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both",
+        "pop-in":         "popIn 0.35s cubic-bezier(0.22, 1, 0.36, 1) both",
+        "tab-enter":      "tabPanelEnter 0.3s cubic-bezier(0.22, 1, 0.36, 1) both",
         // F1 logo & component animations
         "wheel-spin":     "wheelSpin 0.85s linear infinite",
         "speed-line":     "speedLine 1.8s ease-in infinite",
@@ -68,6 +70,14 @@ const config: Config = {
         },
         countUp: {
           "0%":   { opacity: "0", transform: "translateY(8px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        popIn: {
+          "0%":   { opacity: "0", transform: "scale(0.96) translateY(6px)" },
+          "100%": { opacity: "1", transform: "scale(1) translateY(0)" },
+        },
+        tabPanelEnter: {
+          "0%":   { opacity: "0", transform: "translateY(10px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
       },

@@ -90,14 +90,20 @@ body {
    ═══════════════════════ */
 .card-hover {
   transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease,
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.28s cubic-bezier(0.22, 1, 0.36, 1),
     border-color 0.2s ease;
+  will-change: transform;
 }
 
 .card-hover:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.08);
+  transform: translateY(-3px) scale(1.005);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.1);
+}
+
+.card-hover:active {
+  transform: translateY(-1px) scale(1.002);
+  transition-duration: 0.08s;
 }
 
 /* ═══════════════════════
@@ -171,14 +177,18 @@ body {
    STAGGER HELPERS
    For animating lists
    ═══════════════════════ */
-.stagger > *:nth-child(1)  { animation-delay: 0.05s; }
-.stagger > *:nth-child(2)  { animation-delay: 0.10s; }
-.stagger > *:nth-child(3)  { animation-delay: 0.15s; }
-.stagger > *:nth-child(4)  { animation-delay: 0.20s; }
-.stagger > *:nth-child(5)  { animation-delay: 0.25s; }
-.stagger > *:nth-child(6)  { animation-delay: 0.30s; }
-.stagger > *:nth-child(7)  { animation-delay: 0.35s; }
-.stagger > *:nth-child(8)  { animation-delay: 0.40s; }
+.stagger > *:nth-child(1)  { animation-delay: 0.04s; }
+.stagger > *:nth-child(2)  { animation-delay: 0.08s; }
+.stagger > *:nth-child(3)  { animation-delay: 0.12s; }
+.stagger > *:nth-child(4)  { animation-delay: 0.16s; }
+.stagger > *:nth-child(5)  { animation-delay: 0.20s; }
+.stagger > *:nth-child(6)  { animation-delay: 0.24s; }
+.stagger > *:nth-child(7)  { animation-delay: 0.28s; }
+.stagger > *:nth-child(8)  { animation-delay: 0.32s; }
+.stagger > *:nth-child(9)  { animation-delay: 0.36s; }
+.stagger > *:nth-child(10) { animation-delay: 0.40s; }
+.stagger > *:nth-child(11) { animation-delay: 0.44s; }
+.stagger > *:nth-child(12) { animation-delay: 0.48s; }
 
 /* ═══════════════════════
    NUMBER STYLES
@@ -204,12 +214,81 @@ body {
    TABLE ROW HOVER
    ═══════════════════════ */
 .table-row-hover {
-  transition: background-color 0.15s ease;
+  transition: background-color 0.18s ease;
   cursor: default;
 }
 
 .table-row-hover:hover {
-  background-color: rgba(255,255,255,0.04);
+  background-color: rgba(255,255,255,0.05);
+}
+
+/* ═══════════════════════════
+   TAB PANEL ENTER
+   Animate tab content in
+   ═══════════════════════════ */
+.tab-panel-enter {
+  animation: tabPanelEnter 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ═══════════════════════════
+   EXPAND GRID ACCORDION
+   CSS grid trick for smooth
+   height-unknown transitions
+   ═══════════════════════════ */
+.expand-grid {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.expand-grid.open {
+  grid-template-rows: 1fr;
+}
+
+.expand-grid > * {
+  overflow: hidden;
+}
+
+/* ═══════════════════════
+   INTERACTIVE BUTTON
+   Press-down effect
+   ═══════════════════════ */
+.btn-interactive {
+  transition:
+    transform 0.15s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.15s ease,
+    background-color 0.2s ease;
+}
+
+.btn-interactive:hover {
+  transform: translateY(-1px);
+}
+
+.btn-interactive:active {
+  transform: translateY(0) scale(0.98);
+  opacity: 0.9;
+  transition-duration: 0.08s;
+}
+
+/* ═══════════════════════
+   FOCUS VISIBLE
+   Keyboard nav accessibility
+   ═══════════════════════ */
+:focus-visible {
+  outline: 2px solid rgba(225, 6, 0, 0.6);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ═══════════════════════
+   REDUCED MOTION
+   ═══════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* ═══════════════════════════════════
@@ -234,4 +313,34 @@ body {
 @keyframes f1GlowPulse {
   0%, 100% { opacity: 0.28; }
   50%      { opacity: 0.52; }
+}
+
+/* Tab panel slide-in */
+@keyframes tabPanelEnter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Card stagger pop-in */
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Subtle shimmer for loading skeleton */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }

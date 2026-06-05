@@ -1,10 +1,17 @@
 # backend/app/main.py
 
+import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.api.routes import f1
 import os
+
+# Configure logging — show INFO level for our app
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
 
 
 def create_application() -> FastAPI:
@@ -16,8 +23,7 @@ def create_application() -> FastAPI:
         redoc_url="/api/redoc",
     )
 
-    # ✅ Allow requests from anywhere in production
-    # When you know your Vercel URL you can restrict it
+    # Allow requests from anywhere in production
     application.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
