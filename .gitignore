@@ -1,7 +1,4 @@
-FEATURES.txt
-LLM_CONTEXT.txt
-HOW_TO_RUN.txt
-CICD_DEEP_DIVE.txt
+*.txt
 
 # Python
 __pycache__/
