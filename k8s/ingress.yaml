@@ -1,15 +1,22 @@
-# ── Nginx Ingress ─────────────────────────────────────────────
-# Requires the nginx ingress controller to be installed in your cluster.
-# Install it with:
-#   kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.10.1/deploy/static/provider/cloud/deploy.yaml
+# ── Nginx Ingress with TLS ──────────────────────────────────────────────────
+# Deployed on AKS. Requires the following pre-installed cluster add-ons:
 #
-# How traffic flows:
-#   Browser  →  Ingress (yourdomain.com)
+#  1. NGINX Ingress Controller
+#     kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.10.1/deploy/static/provider/cloud/deploy.yaml
+#     Wait for the LoadBalancer external IP:
+#     kubectl get svc ingress-nginx-controller -n ingress-nginx
+#     Point your domain DNS A record to this IP.
+#
+#  2. cert-manager (automatic TLS via Let's Encrypt)
+#     kubectl apply -f https://github.com/cert-manager/cert-manager/releases/latest/download/cert-manager.yaml
+#     Then apply k8s/cert-manager/cluster-issuer.yaml (see that file).
+#
+# Traffic flow:
+#   Browser  ──HTTPS──►  LoadBalancer (AKS)  ──►  Nginx Ingress
 #     /api/*  →  backend:8000   (FastAPI)
 #     /*      →  frontend:3000  (Next.js)
 #
-# Replace "yourdomain.com" with your actual domain (or use the
-# external IP of the LoadBalancer for quick testing).
+# Replace "f1dashboard.yourdomain.com" with your actual domain.
 
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -18,14 +25,21 @@ metadata:
   namespace: f1-dashboard
   annotations:
     nginx.ingress.kubernetes.io/use-regex: "true"
-    # Remove the /api prefix before forwarding to the backend
-    # (backend routes already include /api/v1/... so we keep it)
     nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    # cert-manager sees this annotation and automatically requests a
+    # Let's Encrypt certificate for the host(s) listed in spec.tls.
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # Redirect all plain HTTP traffic to HTTPS automatically.
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
 spec:
   ingressClassName: nginx
+  tls:
+    - hosts:
+        - f1dashboard.yourdomain.com   # ← replace with your domain
+      secretName: f1-dashboard-tls     # cert-manager populates this Secret
   rules:
-    - host: yourdomain.com          # ← replace with your domain
+    - host: f1dashboard.yourdomain.com  # ← replace with your domain
       http:
         paths:
           # All /api/* traffic → backend
@@ -44,8 +58,3 @@ spec:
                 name: frontend
                 port:
                   number: 3000
-  # Uncomment and configure for TLS (cert-manager recommended)
-  # tls:
-  #   - hosts:
-  #       - yourdomain.com
-  #     secretName: f1-dashboard-tls

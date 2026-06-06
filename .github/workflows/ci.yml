@@ -68,6 +68,8 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # Image tags use a local name — no registry login required in CI.
+      # The CD workflow pushes to Azure Container Registry (ACR).
       - name: Build backend image
         uses: docker/build-push-action@v5
         with:
@@ -87,3 +89,36 @@ jobs:
             NEXT_PUBLIC_API_URL=http://localhost:8000
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # ── Job 4: Terraform validate ────────────────────────────────
+  # Checks that the Terraform configuration is syntactically valid and
+  # internally consistent. Runs WITHOUT connecting to any backend
+  # (-backend=false), so no secrets are required in CI.
+  terraform-validate:
+    name: "Terraform — Validate"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terraform
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.9"
+
+      # Init without a backend so no remote state credentials are needed.
+      # This still downloads providers and validates the configuration.
+      - name: Terraform Init (no backend)
+        run: terraform init -backend=false
+
+      # Fail if any .tf file is not correctly formatted.
+      # Run "terraform fmt" locally to auto-fix formatting.
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive
+
+      # Validates types, references, and required arguments — catches errors
+      # before they reach the real deploy step in CD.
+      - name: Terraform Validate
+        run: terraform validate

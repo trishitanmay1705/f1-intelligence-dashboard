@@ -5,39 +5,55 @@ on:
   push:
     branches: [master]
 
+# OIDC permissions required for keyless Azure authentication.
+# No long-lived service-principal passwords are stored as GitHub secrets.
+# Instead, GitHub mints a short-lived OIDC token that Azure trusts.
+permissions:
+  id-token: write   # allows GitHub to mint an OIDC token for azure/login
+  contents: read    # allows checkout
+
 env:
-  REGISTRY: ghcr.io
-  # These expand to e.g. ghcr.io/trishitanmay1705/f1-intelligence-backend
-  BACKEND_IMAGE:  ghcr.io/${{ github.repository_owner }}/f1-intelligence-backend
-  FRONTEND_IMAGE: ghcr.io/${{ github.repository_owner }}/f1-intelligence-frontend
+  # ACR_LOGIN_SERVER is stored as a GitHub Actions Variable (not a secret):
+  #   Settings → Secrets and variables → Actions → Variables
+  #   e.g.  f1dashboardacr.azurecr.io
+  ACR_LOGIN_SERVER: ${{ vars.ACR_LOGIN_SERVER }}
+  BACKEND_IMAGE:    ${{ vars.ACR_LOGIN_SERVER }}/f1-intelligence-backend
+  FRONTEND_IMAGE:   ${{ vars.ACR_LOGIN_SERVER }}/f1-intelligence-frontend
 
 jobs:
 
-  # ── Job 1: Build images and push to GitHub Container Registry ─
+  # ── Job 1: Build images and push to Azure Container Registry ──
+  # AKS uses managed identity to pull from ACR — no image-pull secrets needed.
   build-and-push:
-    name: "Build & Push Docker Images"
+    name: "Build & Push to ACR"
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write       # needed to push to GHCR
     outputs:
       image-tag: ${{ github.sha }}
     steps:
       - uses: actions/checkout@v4
 
-      # Log in to GHCR using the built-in GITHUB_TOKEN — no extra secret needed
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+      # Authenticate to Azure using OIDC (no client secret).
+      # Federated credential must be configured in Azure AD:
+      #   App Registration → Certificates & secrets → Federated credentials
+      #   Entity: GitHub Actions → repo: <owner>/<repo> → branch: master
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
         with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          client-id:       ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id:       ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # az acr login exchanges the Azure access token for a Docker registry token.
+      # No admin credentials or long-lived passwords required.
+      - name: Log in to Azure Container Registry
+        run: az acr login --name ${{ vars.ACR_NAME }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Build + push backend
-      # Tag with both :latest and the exact git SHA for traceability
+      # Build + push backend.
+      # Tagged with both :latest (convenience) and the exact 40-char git SHA
+      # (immutable reference used by Terraform to pin the deployment).
       - name: Build & push backend
         uses: docker/build-push-action@v5
         with:
@@ -49,12 +65,12 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # Build + push frontend
-      # NEXT_PUBLIC_API_URL is baked into the JS bundle at build time.
-      # Store your production API domain in a GitHub Actions secret:
-      #   Settings → Secrets and variables → Actions → New secret
+      # NEXT_PUBLIC_API_URL is baked into the Next.js JS bundle at build time
+      # (Next.js expands NEXT_PUBLIC_* at compile time, not at runtime).
+      # Store the production API domain as a GitHub Actions secret:
+      #   Settings → Secrets and variables → Actions → Secrets
       #   Name: NEXT_PUBLIC_API_URL
-      #   Value: https://yourdomain.com  (same host as the ingress)
+      #   Value: https://yourdomain.com
       - name: Build & push frontend
         uses: docker/build-push-action@v5
         with:
@@ -68,54 +84,95 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # ── Job 2: Rolling deploy to Kubernetes ───────────────────────
+  # ── Job 2: Deploy to AKS via Terraform ────────────────────────
+  # Terraform applies both the Azure infrastructure (AKS, ACR) and the
+  # Kubernetes workloads (Deployments, Services, Ingress) in one step.
+  # On the first run it provisions AKS. On subsequent runs it only updates
+  # the Deployment image tags — unchanged resources are left untouched.
   deploy:
-    name: "Deploy to Kubernetes"
+    name: "Deploy to AKS via Terraform"
     runs-on: ubuntu-latest
     needs: build-and-push
-    environment: production      # optional: require manual approval in GitHub
+    environment: production   # optional: require manual approval in GitHub UI
+    defaults:
+      run:
+        working-directory: terraform
     steps:
       - uses: actions/checkout@v4
 
-      # Install kubectl
+      # Re-authenticate. Each job runs on a fresh runner — auth from Job 1
+      # does not carry over.
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id:       ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id:       ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # Fetch AKS credentials and write them to ~/.kube/config.
+      # The Terraform kubernetes provider and kubectl both read this file.
+      - name: Set AKS kubectl context
+        uses: azure/aks-set-context@v3
+        with:
+          resource-group: ${{ vars.AKS_RESOURCE_GROUP }}
+          cluster-name:   ${{ vars.AKS_CLUSTER_NAME }}
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.9"
+
+      # kubectl is needed for rollout-status verification after Terraform apply.
       - name: Set up kubectl
         uses: azure/setup-kubectl@v4
 
-      # Write the kubeconfig from a GitHub secret.
-      # How to create the secret:
-      #   1. Copy your ~/.kube/config (or the admin kubeconfig from your server)
-      #   2. base64-encode it:  cat ~/.kube/config | base64 -w 0
-      #   3. Add to GitHub Secrets as KUBECONFIG (the base64 string)
-      - name: Configure kubeconfig
+      # Downloads the azurerm + kubernetes providers and connects to the
+      # Azure Blob Storage remote state backend.
+      # ARM_* env vars authenticate Terraform's azurerm provider via OIDC.
+      # ARM_ACCESS_KEY authenticates the azurerm backend (storage account key).
+      - name: Terraform Init
+        run: terraform init
+        env:
+          ARM_CLIENT_ID:       ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID:       ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          ARM_USE_OIDC:        "true"
+          ARM_ACCESS_KEY:      ${{ secrets.TF_STATE_STORAGE_KEY }}
+
+      # Applies Azure infrastructure (idempotent — skips unchanged resources)
+      # AND Kubernetes workloads. Passes the new image tag so Terraform detects
+      # the diff and triggers a rolling update on only the changed Deployments.
+      # wait_for_rollout=true in main.tf blocks until all pods are healthy.
+      - name: Terraform Apply
         run: |
-          mkdir -p ~/.kube
-          echo "${{ secrets.KUBECONFIG }}" | base64 -d > ~/.kube/config
-          chmod 600 ~/.kube/config
+          terraform apply -auto-approve \
+            -var="backend_image=${{ env.BACKEND_IMAGE }}" \
+            -var="frontend_image=${{ env.FRONTEND_IMAGE }}" \
+            -var="image_tag=${{ github.sha }}" \
+            -var="domain=${{ secrets.DOMAIN }}" \
+            -var="resource_group_name=${{ vars.AKS_RESOURCE_GROUP }}" \
+            -var="aks_cluster_name=${{ vars.AKS_CLUSTER_NAME }}" \
+            -var="acr_name=${{ vars.ACR_NAME }}"
+        env:
+          ARM_CLIENT_ID:       ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID:       ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          ARM_USE_OIDC:        "true"
+          ARM_ACCESS_KEY:      ${{ secrets.TF_STATE_STORAGE_KEY }}
 
-      # Pin both deployments to the exact image that was just built
-      # (avoids pulling :latest which can be ambiguous)
-      - name: Pin image tags to git SHA
-        run: |
-          sed -i "s|${{ env.BACKEND_IMAGE }}:latest|${{ env.BACKEND_IMAGE }}:${{ github.sha }}|g" \
-            k8s/backend/deployment.yaml
-          sed -i "s|${{ env.FRONTEND_IMAGE }}:latest|${{ env.FRONTEND_IMAGE }}:${{ github.sha }}|g" \
-            k8s/frontend/deployment.yaml
+      # Extra verification layer: Terraform's wait_for_rollout already blocks,
+      # but these steps print live rollout progress to the job log for clarity
+      # and fail the job immediately if pods are crashlooping.
+      - name: Verify rollout — backend
+        working-directory: ${{ github.workspace }}
+        run: kubectl rollout status deployment/backend -n f1-dashboard --timeout=120s
 
-      # Apply manifests in dependency order
-      - name: Apply manifests
-        run: |
-          kubectl apply -f k8s/namespace.yaml
-          kubectl apply -f k8s/backend/
-          kubectl apply -f k8s/frontend/
-          kubectl apply -f k8s/ingress.yaml
-
-      # Wait for rollouts to complete — fails the job if a pod crashes
-      - name: Wait for rollout — backend
-        run: kubectl rollout status deployment/backend  -n f1-dashboard --timeout=120s
-
-      - name: Wait for rollout — frontend
+      - name: Verify rollout — frontend
+        working-directory: ${{ github.workspace }}
         run: kubectl rollout status deployment/frontend -n f1-dashboard --timeout=120s
 
-      # Print the ingress address so it's visible in the job summary
+      # Prints the public IP/hostname assigned to the ingress LoadBalancer.
+      # Visible in the GitHub Actions job summary for quick access.
       - name: Show ingress address
+        working-directory: ${{ github.workspace }}
         run: kubectl get ingress -n f1-dashboard

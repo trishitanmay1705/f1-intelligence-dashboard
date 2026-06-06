@@ -1,0 +1,62 @@
+# ── cert-manager ClusterIssuer ─────────────────────────────────────────────────
+#
+# A ClusterIssuer is a cert-manager resource that tells cert-manager HOW to
+# request TLS certificates. This one uses Let's Encrypt (ACME protocol) with
+# an HTTP-01 challenge via the NGINX ingress controller.
+#
+# Prerequisites:
+#   1. cert-manager installed in the cluster (see k8s/ingress.yaml header).
+#   2. NGINX Ingress Controller running with a public LoadBalancer IP.
+#   3. Your domain DNS A record pointing to the LoadBalancer IP.
+#
+# Apply AFTER cert-manager is running:
+#   kubectl apply -f k8s/cert-manager/cluster-issuer.yaml
+#
+# How it works:
+#   1. cert-manager sees the Ingress annotation: cert-manager.io/cluster-issuer: letsencrypt-prod
+#   2. It creates an ACME Order for the domain in spec.tls[].hosts
+#   3. Let's Encrypt sends an HTTP-01 challenge: "serve a token at /.well-known/acme-challenge/<token>"
+#   4. cert-manager creates a temporary Ingress rule to serve the token
+#   5. Let's Encrypt verifies the token, proves you control the domain
+#   6. cert-manager stores the certificate in the Secret named by spec.tls[].secretName
+#   7. NGINX picks up the certificate and serves HTTPS automatically
+#   8. cert-manager auto-renews the certificate before it expires (~60 days)
+#
+# letsencrypt-staging vs letsencrypt-prod:
+#   Use letsencrypt-staging first to test without hitting rate limits.
+#   Switch to letsencrypt-prod when everything works.
+# ──────────────────────────────────────────────────────────────────────────────
+
+---
+# Staging issuer — use for testing to avoid Let's Encrypt rate limits
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: your-email@example.com     # ← replace with your email (certificate expiry alerts)
+    privateKeySecretRef:
+      name: letsencrypt-staging-key   # cert-manager stores the ACME account key here
+    solvers:
+      - http01:
+          ingress:
+            class: nginx
+
+---
+# Production issuer — use once staging works; issues real trusted certificates
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: your-email@example.com     # ← replace with your email
+    privateKeySecretRef:
+      name: letsencrypt-prod-key
+    solvers:
+      - http01:
+          ingress:
+            class: nginx

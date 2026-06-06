@@ -1,0 +1,39 @@
+# Copy this file to terraform.tfvars and fill in the real values.
+# terraform.tfvars is gitignored — never commit it.
+# In CI/CD, values are passed as -var flags or TF_VAR_* env vars.
+
+# ── Azure Infrastructure ──────────────────────────────────────────────────────
+
+# Azure region. Choose closest to your users.
+location = "eastus"
+
+# Resource group name (will be created if it doesn't exist).
+resource_group_name = "f1-dashboard-rg"
+
+# AKS cluster name and DNS prefix.
+aks_cluster_name = "f1-dashboard-aks"
+
+# Number of AKS worker nodes. Minimum 2 for HA.
+aks_node_count = 2
+
+# VM size for AKS nodes. Standard_B2s = 2 vCPU / 4 GB RAM.
+aks_node_vm_size = "Standard_B2s"
+
+# ACR name — must be globally unique, 5–50 lowercase alphanumeric characters.
+# This becomes the registry hostname: <acr_name>.azurecr.io
+acr_name = "f1dashboardacr"
+
+# ── Application ───────────────────────────────────────────────────────────────
+
+# Full image repository paths (without tag). Replace <acr_name> with your ACR name.
+backend_image  = "f1dashboardacr.azurecr.io/f1-intelligence-backend"
+frontend_image = "f1dashboardacr.azurecr.io/f1-intelligence-frontend"
+
+# Image tag to deploy. In CI/CD this is set to the git SHA automatically.
+# For manual local runs, "latest" is convenient.
+image_tag = "latest"
+
+# Public domain your Ingress listens on. Must have DNS pointing to the
+# AKS LoadBalancer external IP. Used for TLS certificate via cert-manager.
+domain = "f1dashboard.yourdomain.com"
+

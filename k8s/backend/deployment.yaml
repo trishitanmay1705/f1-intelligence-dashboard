@@ -23,8 +23,10 @@ spec:
     spec:
       containers:
         - name: backend
-          # Image tag is replaced with the git SHA by the CD workflow
-          image: ghcr.io/GITHUB_OWNER/f1-intelligence-backend:latest
+          # Image is pulled from Azure Container Registry (ACR).
+          # Tag is replaced with the exact git SHA by the CD workflow.
+          # AKS pulls via managed identity — no imagePullSecrets required.
+          image: f1dashboardacr.azurecr.io/f1-intelligence-backend:latest
           ports:
             - containerPort: 8000
           envFrom:

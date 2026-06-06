@@ -2,6 +2,8 @@ FEATURES.txt
 LLM_CONTEXT.txt
 HOW_TO_RUN.txt
 CICD_DEEP_DIVE.txt
+PROJECT_DEEP_DIVE.txt
+PROJECT_ARCHITECTURE.txt
 
 # Python
 __pycache__/
@@ -20,4 +22,13 @@ out/
 
 # Cache
 backend/cache/*.json
+
+# Terraform
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/terraform.tfvars
+terraform/*.tfplan
+terraform/crash.log
 

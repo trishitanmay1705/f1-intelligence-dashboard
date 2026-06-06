@@ -22,8 +22,10 @@ spec:
     spec:
       containers:
         - name: frontend
-          # Image tag is replaced with the git SHA by the CD workflow
-          image: ghcr.io/GITHUB_OWNER/f1-intelligence-frontend:latest
+          # Image is pulled from Azure Container Registry (ACR).
+          # Tag is replaced with the exact git SHA by the CD workflow.
+          # AKS pulls via managed identity — no imagePullSecrets required.
+          image: f1dashboardacr.azurecr.io/f1-intelligence-frontend:latest
           ports:
             - containerPort: 3000
           # NEXT_PUBLIC_API_URL is baked into the image at build time (see CD workflow).
