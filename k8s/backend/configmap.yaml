@@ -1,7 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: backend-config
-  namespace: f1-dashboard
-data:
-  JOLPICA_BASE_URL: "https://api.jolpi.ca/ergast/f1"
